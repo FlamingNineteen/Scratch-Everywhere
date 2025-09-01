@@ -10,7 +10,7 @@
 #ifdef __WIIU__
 #include <whb/sdcard.h>
 #endif
-
+#include "../curl.hpp"
 MainMenu::MainMenu() {
     init();
 }
@@ -909,20 +909,14 @@ void ProjectDownload::render() {
     }
     if (okButton->isPressed({"a"})) {
         // Look up the project ID
-        try {
-            int id = std::stoi(pinpadInput);
-            drawImage(fetch_image(("https://uploads.scratch.mit.edu/get_image/project/" + pinpadInput + "_364x273.png").c_str(), renderer), 15 + (i % 5) * 378, 150 + floor(i / 5) * 287, 364, 273);
-            /*
-            TODO
-            */
-            if (selected < max_selected) {
-                assetScreenBars(/*json::parse*/(fetch_json(api_url(id_i).c_str()).c_str())/*["title"].get<std::string>().c_str()*/);
+        // #ifdef __WIIU__
+            try {
+                pinpadInput = Curl::FetchJson("http://httpbin.org/get"/*"http://api.scratch.mit.edu/projects/" + pinpadInput*/);
+                if (pinpadInput == "") pinpadInput = "BLANK";
+            } catch (...) {
+                pinpadInput = "ERROR";
             }
-        } catch (...) {
-            if (selected < max_selected) {
-                assetScreenBars(id_selected.c_str());
-            }
-        }
+        // #endif
     }
     if (backButton->isPressed({"b", "y"})) shouldGoBack = true;
 

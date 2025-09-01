@@ -55,7 +55,8 @@ else
 LIBS	:=	`$(PKGCONF_WIIU) --libs SDL2_image SDL2_ttf sdl2` `$(PKGCONF) --libs zlib libpng`
 endif
 
-LIBS	+=	-lharfbuzz -lfreetype
+LIBS	+=	-lcurl -lwut -lfreetype -lharfbuzz -lpng -lbz2 \
+			-lz -lmodplug -lmpg123 -logg -lmbedtls -lmbedx509 -lmbedcrypto
 
 ifeq ($(ENABLE_CLOUDVARS),1)
 CFLAGS	+=	-DENABLE_CLOUDVARS `$(PKGCONF_WIIU) --cflags mist++`
