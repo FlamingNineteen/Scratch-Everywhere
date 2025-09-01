@@ -4,6 +4,7 @@
 #include "../input.hpp"
 #include "../interpret.hpp"
 #include "../render.hpp"
+#include "../text.hpp"
 #include "../unzip.hpp"
 #include <nlohmann/json.hpp>
 #ifdef __WIIU__
@@ -82,13 +83,13 @@ void MainMenu::init() {
 
     loadButton = new ButtonObject("", "gfx/menu/play.png", 200, 180);
     loadButton->isSelected = true;
-    // settingsButton = new ButtonObject("", "gfx/menu/settings.png", 300, 180);
+    settingsButton = new ButtonObject("", "gfx/menu/settings.png", 300, 180);
     mainMenuControl = new ControlObject();
     mainMenuControl->selectedObject = loadButton;
-    // loadButton->buttonRight = settingsButton;
-    // settingsButton->buttonLeft = loadButton;
+    loadButton->buttonRight = settingsButton;
+    settingsButton->buttonLeft = loadButton;
     mainMenuControl->buttonObjects.push_back(loadButton);
-    // mainMenuControl->buttonObjects.push_back(settingsButton);
+    mainMenuControl->buttonObjects.push_back(settingsButton);
 }
 
 void MainMenu::render() {
@@ -108,12 +109,12 @@ void MainMenu::render() {
     // begin 3DS bottom screen frame
     Render::beginFrame(1, 117, 77, 117);
 
-    // if (settingsButton->isPressed()) {
-    //     settingsButton->x += 100;
-    // }
+    if (settingsButton->isPressed()) {
+        settingsButton->x += 100;
+    }
 
     loadButton->render();
-    // settingsButton->render();
+    settingsButton->render();
     mainMenuControl->render();
 
     Render::endFrame();
@@ -224,12 +225,18 @@ void ProjectMenu::init() {
         projectControl->selectedObject->isSelected = true;
         cameraY = projectControl->selectedObject->y;
         hasProjects = true;
+
         playButton = new ButtonObject("Play (A)", "gfx/menu/optionBox.svg", 95, 230);
-        settingsButton = new ButtonObject("Settings (L)", "gfx/menu/optionBox.svg", 315, 230);
+        settingsButton = new ButtonObject("Settings (R)", "gfx/menu/optionBox.svg", 315, 230);
+        downloadButton = new ButtonObject("Download Project (L)", "gfx/menu/optionBox.svg", 315, 210);
+
         playButton->scale = 0.6;
         settingsButton->scale = 0.6;
-        settingsButton->needsToBeSelected = false;
+        downloadButton->scale = 0.6;
+
         playButton->needsToBeSelected = false;
+        settingsButton->needsToBeSelected = false;
+        downloadButton->needsToBeSelected = false;
     }
 }
 
@@ -246,7 +253,7 @@ void ProjectMenu::render() {
             shouldGoBack = true;
             return;
         }
-        if (settingsButton->isPressed({"l"})) {
+        if (settingsButton->isPressed({"r"})) {
             std::string selectedProject = projectControl->selectedObject->text->getText();
             cleanup();
             ProjectSettings settings(selectedProject);
@@ -254,6 +261,16 @@ void ProjectMenu::render() {
                 settings.render();
             }
             settings.cleanup();
+            init();
+        }
+        if (downloadButton->isPressed({"l"})) {
+            std::string selectedProject = projectControl->selectedObject->text->getText();
+            cleanup();
+            ProjectDownload download(selectedProject);
+            while (download.shouldGoBack == false && Render::appShouldRun()) {
+                download.render();
+            }
+            download.cleanup();
             init();
         }
         targetY = projectControl->selectedObject->y;
@@ -307,6 +324,7 @@ void ProjectMenu::render() {
     if (hasProjects) {
         playButton->render();
         settingsButton->render();
+        downloadButton->render();
         projectControl->render(cameraX, cameraY - cameraYOffset);
     } else {
         noProjectsButton->render();
@@ -369,8 +387,8 @@ void ProjectSettings::init() {
     // initialize
     changeControlsButton = new ButtonObject("Change Controls", "gfx/menu/projectBox.png", 200, 100);
     changeControlsButton->text->setColor(Math::color(0, 0, 0, 255));
-    // bottomScreenButton = new ButtonObject("Bottom Screen", "gfx/menu/projectBox.png", 200, 150);
-    // bottomScreenButton->text->setColor(Math::color(0, 0, 0, 255));
+    bottomScreenButton = new ButtonObject("Bottom Screen", "gfx/menu/projectBox.png", 200, 150);
+    bottomScreenButton->text->setColor(Math::color(0, 0, 0, 255));
     settingsControl = new ControlObject();
     backButton = new ButtonObject("", "gfx/menu/buttonBack.png", 375, 20);
     backButton->scale = 1.0;
@@ -381,14 +399,14 @@ void ProjectSettings::init() {
     changeControlsButton->isSelected = true;
 
     // link buttons
-    // changeControlsButton->buttonDown = bottomScreenButton;
-    // changeControlsButton->buttonUp = bottomScreenButton;
-    // bottomScreenButton->buttonUp = changeControlsButton;
-    // bottomScreenButton->buttonDown = changeControlsButton;
+    changeControlsButton->buttonDown = bottomScreenButton;
+    changeControlsButton->buttonUp = bottomScreenButton;
+    bottomScreenButton->buttonUp = changeControlsButton;
+    bottomScreenButton->buttonDown = changeControlsButton;
 
     // add buttons to control
     settingsControl->buttonObjects.push_back(changeControlsButton);
-    // settingsControl->buttonObjects.push_back(bottomScreenButton);
+    settingsControl->buttonObjects.push_back(bottomScreenButton);
 }
 void ProjectSettings::render() {
     Input::getInput();
@@ -714,4 +732,282 @@ void ControlsMenu::cleanup() {
     Input::getInput();
     Render::endFrame();
     Render::renderMode = Render::BOTH_SCREENS;
+}
+
+ProjectDownload::ProjectDownload(std::string projPath) {
+    init();
+}
+ProjectDownload::~ProjectDownload() {
+    cleanup();
+}
+
+void ProjectDownload::init() {
+    // initialize
+    pinpad1 = new ButtonObject("1", "gfx/menu/buttonPinpad.png", 50, 50);
+    pinpad1->text->setColor(Math::color(0, 0, 0, 255));
+    pinpad1->scale = 1.5;
+    pinpad2 = new ButtonObject("2", "gfx/menu/buttonPinpad.png", 90, 50);
+    pinpad2->text->setColor(Math::color(0, 0, 0, 255));
+    pinpad2->scale = 1.5;
+    pinpad3 = new ButtonObject("3", "gfx/menu/buttonPinpad.png", 130, 50);
+    pinpad3->text->setColor(Math::color(0, 0, 0, 255));
+    pinpad3->scale = 1.5;
+    pinpad4 = new ButtonObject("4", "gfx/menu/buttonPinpad.png", 50, 90);
+    pinpad4->text->setColor(Math::color(0, 0, 0, 255));
+    pinpad4->scale = 1.5;
+    pinpad5 = new ButtonObject("5", "gfx/menu/buttonPinpad.png", 90, 90);
+    pinpad5->text->setColor(Math::color(0, 0, 0, 255));
+    pinpad5->scale = 1.5;
+    pinpad6 = new ButtonObject("6", "gfx/menu/buttonPinpad.png", 130, 90);
+    pinpad6->text->setColor(Math::color(0, 0, 0, 255));
+    pinpad6->scale = 1.5;
+    pinpad7 = new ButtonObject("7", "gfx/menu/buttonPinpad.png", 50, 130);
+    pinpad7->text->setColor(Math::color(0, 0, 0, 255));
+    pinpad7->scale = 1.5;
+    pinpad8 = new ButtonObject("8", "gfx/menu/buttonPinpad.png", 90, 130);
+    pinpad8->text->setColor(Math::color(0, 0, 0, 255));
+    pinpad8->scale = 1.5;
+    pinpad9 = new ButtonObject("9", "gfx/menu/buttonPinpad.png", 130, 130);
+    pinpad9->text->setColor(Math::color(0, 0, 0, 255));
+    pinpad9->scale = 1.5;
+    backspaceButton = new ButtonObject("<", "gfx/menu/buttonPinpad.png", 50, 170);
+    backspaceButton->text->setColor(Math::color(0, 0, 0, 255));
+    backspaceButton->scale = 1.5;
+    pinpad0 = new ButtonObject("0", "gfx/menu/buttonPinpad.png", 90, 170);
+    pinpad0->text->setColor(Math::color(0, 0, 0, 255));
+    pinpad0->scale = 1.5;
+    okButton = new ButtonObject("OK", "gfx/menu/buttonPinpad.png", 130, 170);
+    okButton->text->setColor(Math::color(0, 0, 0, 255));
+    okButton->scale = 1.5;
+    backButton = new ButtonObject("", "gfx/menu/buttonBack.png", 375, 20);
+    downloadControl = new ControlObject();
+    backButton->scale = 1.0;
+    backButton->needsToBeSelected = false;
+    projectId = createTextObject("Project ID", 300, 50);
+    projectId->setCenterAligned(true);
+    projectId->setScale(1.7);
+
+    // initial selected object
+    downloadControl->selectedObject = pinpad1;
+    pinpad1->isSelected = true;
+
+    // link buttons
+    pinpad1->buttonUp = backspaceButton;
+    pinpad1->buttonRight = pinpad2;
+    pinpad1->buttonDown = pinpad4;
+    pinpad1->buttonLeft = pinpad3;
+
+    pinpad2->buttonUp = pinpad0;
+    pinpad2->buttonRight = pinpad3;
+    pinpad2->buttonDown = pinpad5;
+    pinpad2->buttonLeft = pinpad1;
+
+    pinpad3->buttonUp = okButton;
+    pinpad3->buttonRight = pinpad1;
+    pinpad3->buttonDown = pinpad6;
+    pinpad3->buttonLeft = pinpad2;
+
+    pinpad4->buttonUp = pinpad1;
+    pinpad4->buttonRight = pinpad5;
+    pinpad4->buttonDown = pinpad7;
+    pinpad4->buttonLeft = pinpad6;
+
+    pinpad5->buttonUp = pinpad2;
+    pinpad5->buttonRight = pinpad6;
+    pinpad5->buttonDown = pinpad8;
+    pinpad5->buttonLeft = pinpad4;
+
+    pinpad6->buttonUp = pinpad3;
+    pinpad6->buttonRight = pinpad4;
+    pinpad6->buttonDown = pinpad9;
+    pinpad6->buttonLeft = pinpad5;
+
+    pinpad7->buttonUp = pinpad4;
+    pinpad7->buttonRight = pinpad8;
+    pinpad7->buttonDown = backspaceButton;
+    pinpad7->buttonLeft = pinpad9;
+
+    pinpad8->buttonUp = pinpad5;
+    pinpad8->buttonRight = pinpad9;
+    pinpad8->buttonDown = pinpad0;
+    pinpad8->buttonLeft = pinpad7;
+
+    pinpad9->buttonUp = pinpad6;
+    pinpad9->buttonRight = pinpad7;
+    pinpad9->buttonDown = okButton;
+    pinpad9->buttonLeft = pinpad8;
+
+    backspaceButton->buttonUp = pinpad7;
+    backspaceButton->buttonRight = pinpad0;
+    backspaceButton->buttonDown = pinpad1;
+    backspaceButton->buttonLeft = okButton;
+
+    pinpad0->buttonUp = pinpad8;
+    pinpad0->buttonRight = okButton;
+    pinpad0->buttonDown = pinpad2;
+    pinpad0->buttonLeft = backspaceButton;
+
+    okButton->buttonUp = pinpad9;
+    okButton->buttonRight = backspaceButton;
+    okButton->buttonDown = pinpad3;
+    okButton->buttonLeft = pinpad0;
+
+    // add buttons to control
+    downloadControl->buttonObjects.push_back(pinpad1);
+    downloadControl->buttonObjects.push_back(pinpad2);
+    downloadControl->buttonObjects.push_back(pinpad3);
+    downloadControl->buttonObjects.push_back(pinpad4);
+    downloadControl->buttonObjects.push_back(pinpad5);
+    downloadControl->buttonObjects.push_back(pinpad6);
+    downloadControl->buttonObjects.push_back(pinpad7);
+    downloadControl->buttonObjects.push_back(pinpad8);
+    downloadControl->buttonObjects.push_back(pinpad9);
+    downloadControl->buttonObjects.push_back(pinpad0);
+    downloadControl->buttonObjects.push_back(backspaceButton);
+    downloadControl->buttonObjects.push_back(okButton);
+}
+void ProjectDownload::render() {
+    Input::getInput();
+    downloadControl->input();
+    if (pinpad1->isSelected) pinpad1->scale = 1.7;
+    else pinpad1->scale = 1.5;
+    if (pinpad2->isSelected) pinpad2->scale = 1.7;
+    else pinpad2->scale = 1.5;
+    if (pinpad3->isSelected) pinpad3->scale = 1.7;
+    else pinpad3->scale = 1.5;
+    if (pinpad4->isSelected) pinpad4->scale = 1.7;
+    else pinpad4->scale = 1.5;
+    if (pinpad5->isSelected) pinpad5->scale = 1.7;
+    else pinpad5->scale = 1.5;
+    if (pinpad6->isSelected) pinpad6->scale = 1.7;
+    else pinpad6->scale = 1.5;
+    if (pinpad7->isSelected) pinpad7->scale = 1.7;
+    else pinpad7->scale = 1.5;
+    if (pinpad8->isSelected) pinpad8->scale = 1.7;
+    else pinpad8->scale = 1.5;
+    if (pinpad9->isSelected) pinpad9->scale = 1.7;
+    else pinpad9->scale = 1.5;
+    if (backspaceButton->isSelected) backspaceButton->scale = 1.7;
+    else backspaceButton->scale = 1.5;
+    if (pinpad0->isSelected) pinpad0->scale = 1.7;
+    else pinpad0->scale = 1.5;
+    if (okButton->isSelected) okButton->scale = 1.7;
+    else okButton->scale = 1.5;
+
+    if (pinpad1->isPressed({"a"}) && pinpadInput.length() < 13) pinpadInput += "1";
+    if (pinpad2->isPressed({"a"}) && pinpadInput.length() < 13) pinpadInput += "2";
+    if (pinpad3->isPressed({"a"}) && pinpadInput.length() < 13) pinpadInput += "3";
+    if (pinpad4->isPressed({"a"}) && pinpadInput.length() < 13) pinpadInput += "4";
+    if (pinpad5->isPressed({"a"}) && pinpadInput.length() < 13) pinpadInput += "5";
+    if (pinpad6->isPressed({"a"}) && pinpadInput.length() < 13) pinpadInput += "6";
+    if (pinpad7->isPressed({"a"}) && pinpadInput.length() < 13) pinpadInput += "7";
+    if (pinpad8->isPressed({"a"}) && pinpadInput.length() < 13) pinpadInput += "8";
+    if (pinpad9->isPressed({"a"}) && pinpadInput.length() < 13) pinpadInput += "9";
+    if (pinpad0->isPressed({"a"}) && pinpadInput.length() < 13) pinpadInput += "0";
+    if (backspaceButton->isPressed({"a"}) && pinpadInput.length() > 0) {
+        std::string backspacing = "";
+        for (unsigned int i = 0; i < pinpadInput.length() - 1; i++) {
+            backspacing += pinpadInput[i];
+        }
+        pinpadInput = backspacing;
+    }
+    if (okButton->isPressed({"a"})) {
+        // Look up the project ID
+        try {
+            int id = std::stoi(pinpadInput);
+            drawImage(fetch_image(("https://uploads.scratch.mit.edu/get_image/project/" + pinpadInput + "_364x273.png").c_str(), renderer), 15 + (i % 5) * 378, 150 + floor(i / 5) * 287, 364, 273);
+            /*
+            TODO
+            */
+            if (selected < max_selected) {
+                assetScreenBars(/*json::parse*/(fetch_json(api_url(id_i).c_str()).c_str())/*["title"].get<std::string>().c_str()*/);
+            }
+        } catch (...) {
+            if (selected < max_selected) {
+                assetScreenBars(id_selected.c_str());
+            }
+        }
+    }
+    if (backButton->isPressed({"b", "y"})) shouldGoBack = true;
+
+    if (pinpadInput.length() > 0) projectId->setText(pinpadInput);
+    else projectId->setText("Project ID");
+
+    Render::beginFrame(0, 147, 138, 168);
+    Render::beginFrame(1, 147, 138, 168);
+
+    pinpad1->render();
+    pinpad2->render();
+    pinpad3->render();
+    pinpad4->render();
+    pinpad5->render();
+    pinpad6->render();
+    pinpad7->render();
+    pinpad8->render();
+    pinpad9->render();
+    pinpad0->render();
+    backspaceButton->render();
+    okButton->render();
+    backButton->render();
+    projectId->render(Render::getWidth() * 0.75, Render::getHeight() * 0.2);
+
+    Render::endFrame();
+}
+void ProjectDownload::cleanup() {
+    if (pinpad1 != nullptr) {
+        delete pinpad1;
+        pinpad1 = nullptr;
+    }
+    if (pinpad2 != nullptr) {
+        delete pinpad2;
+        pinpad2 = nullptr;
+    }
+    if (pinpad3 != nullptr) {
+        delete pinpad3;
+        pinpad3 = nullptr;
+    }
+    if (pinpad4 != nullptr) {
+        delete pinpad4;
+        pinpad4 = nullptr;
+    }
+    if (pinpad5 != nullptr) {
+        delete pinpad5;
+        pinpad5 = nullptr;
+    }
+    if (pinpad6 != nullptr) {
+        delete pinpad6;
+        pinpad6 = nullptr;
+    }
+    if (pinpad7 != nullptr) {
+        delete pinpad7;
+        pinpad7 = nullptr;
+    }
+    if (pinpad8 != nullptr) {
+        delete pinpad8;
+        pinpad8 = nullptr;
+    }
+    if (pinpad9 != nullptr) {
+        delete pinpad9;
+        pinpad9 = nullptr;
+    }
+    if (pinpad0 != nullptr) {
+        delete pinpad0;
+        pinpad0 = nullptr;
+    }
+    if (backspaceButton != nullptr) {
+        delete backspaceButton;
+        backspaceButton = nullptr;
+    }
+    if (okButton != nullptr) {
+        delete okButton;
+        okButton = nullptr;
+    }
+    if (backButton != nullptr) {
+        delete backButton;
+        backButton = nullptr;
+    }
+    Render::beginFrame(0, 147, 138, 168);
+    Render::beginFrame(1, 147, 138, 168);
+    Input::getInput();
+    Render::endFrame();
 }

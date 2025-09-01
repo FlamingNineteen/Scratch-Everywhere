@@ -38,6 +38,7 @@ class ProjectMenu {
     ButtonObject *backButton = nullptr;
     ButtonObject *playButton = nullptr;
     ButtonObject *settingsButton = nullptr;
+    ButtonObject *downloadButton = nullptr;
     ButtonObject *noProjectsButton = nullptr;
     TextObject *noProjectInfo = nullptr;
     TextObject *noProjectsText = nullptr;
@@ -91,5 +92,34 @@ class ControlsMenu {
     void init();
     void render();
     void applyControls();
+    void cleanup();
+};
+
+class ProjectDownload {
+  private:
+  public:
+    ControlObject *downloadControl = nullptr;
+    ButtonObject *backButton = nullptr;
+    ButtonObject *backspaceButton = nullptr;
+    ButtonObject *pinpad1 = nullptr;
+    ButtonObject *pinpad2 = nullptr;
+    ButtonObject *pinpad3 = nullptr;
+    ButtonObject *pinpad4 = nullptr;
+    ButtonObject *pinpad5 = nullptr;
+    ButtonObject *pinpad6 = nullptr;
+    ButtonObject *pinpad7 = nullptr;
+    ButtonObject *pinpad8 = nullptr;
+    ButtonObject *pinpad9 = nullptr;
+    ButtonObject *pinpad0 = nullptr;
+    ButtonObject *okButton = nullptr;
+    std::string pinpadInput = "";
+    TextObject *projectId = nullptr;
+    bool shouldGoBack = false;
+
+    ProjectDownload(std::string projPath = "");
+    ~ProjectDownload();
+
+    void init();
+    void render();
     void cleanup();
 };

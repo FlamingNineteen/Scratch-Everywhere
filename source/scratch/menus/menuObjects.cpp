@@ -154,10 +154,10 @@ void ControlObject::input() {
 
     ButtonObject *newSelection = nullptr;
 
-    if (Input::isKeyJustPressed("up arrow") || Input::isKeyJustPressed("g")) newSelection = selectedObject->buttonUp;
-    else if (Input::isKeyJustPressed("down arrow") || Input::isKeyJustPressed("j")) newSelection = selectedObject->buttonDown;
-    else if (Input::isKeyJustPressed("left arrow") || Input::isKeyJustPressed("h")) newSelection = selectedObject->buttonLeft;
-    else if (Input::isKeyJustPressed("right arrow") || Input::isKeyJustPressed("u")) newSelection = selectedObject->buttonRight;
+    if (Input::isKeyJustPressed("up arrow") || Input::isKeyJustPressed("u")) newSelection = selectedObject->buttonUp;
+    else if (Input::isKeyJustPressed("down arrow") || Input::isKeyJustPressed("h")) newSelection = selectedObject->buttonDown;
+    else if (Input::isKeyJustPressed("left arrow") || Input::isKeyJustPressed("g")) newSelection = selectedObject->buttonLeft;
+    else if (Input::isKeyJustPressed("right arrow") || Input::isKeyJustPressed("j")) newSelection = selectedObject->buttonRight;
 
     if (newSelection != nullptr) {
         selectedObject->isSelected = false;
